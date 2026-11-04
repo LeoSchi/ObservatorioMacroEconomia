@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Inflação de alimentos, IPCA geral e rendimento real no Brasil (2024–2026), com dados oficiais do IBGE.">
+<title>Observatório Macro – Inflação e Poder de Compra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<header class="header">
+  <div class="container header-container">
+    <div class="logo-area">
+      <div>
+        <h1>Observatório Macro</h1>
+        <p class="subtitle">Inflação e poder de compra no Brasil · jan/2024 a set/2026</p>
+      </div>
+    </div>
+    <nav class="nav-links" role="tablist" aria-label="Seções do site">
+      <button class="nav-btn active" role="tab" aria-selected="true" data-tab="dashboard">Painel</button>
+      <button class="nav-btn" role="tab" aria-selected="false" data-tab="analise">Análise</button>
+      <button class="nav-btn" role="tab" aria-selected="false" data-tab="metodologia">Metodologia</button>
+      <button class="nav-btn" role="tab" aria-selected="false" data-tab="dados">Dados</button>
+      <button class="nav-btn" role="tab" aria-selected="false" data-tab="fontes">Fontes</button>
+      <button class="nav-btn" role="tab" aria-selected="false" data-tab="autor">Autor</button>
+    </nav>
+  </div>
+</header>
+
+<main class="container main-content">
+
+<!-- PAINEL -->
+<section id="tab-dashboard" class="tab-content active" role="tabpanel">
+  <div class="hero-banner">
+    <h2>Como a inflação de alimentos variou e como ela se compara à inflação geral?</h2>
+    <p>Comparamos o IPCA do grupo Alimentação e bebidas com o IPCA geral e com o rendimento médio real dos trabalhadores, usando séries oficiais do IBGE.</p>
+    <div class="filter-bar" role="group" aria-label="Período de análise">
+      <label>Período:</label>
+      <button class="filter-btn active" aria-pressed="true" onclick="setPeriod('todos', this)">Jan/24 a set/26</button>
+      <button class="filter-btn" aria-pressed="false" onclick="setPeriod('2024', this)">2024</button>
+      <button class="filter-btn" aria-pressed="false" onclick="setPeriod('2025', this)">2025</button>
+      <button class="filter-btn" aria-pressed="false" onclick="setPeriod('2026', this)">2026 (jan–set)</button>
+    </div>
+    <p class="stamp">Último IPCA: setembro/2026 (IBGE, 09/10/2026) · Última PNAD: trimestre jul–set/2026 (IBGE, 30/10/2026)</p>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-header"><span>IPCA Alimentação e bebidas</span></div>
+      <div class="kpi-value" id="kpi-ali">—</div><div class="kpi-foot neutral" id="kpi-ali-foot"></div></div>
+    <div class="kpi-card"><div class="kpi-header"><span>IPCA geral</span></div>
+      <div class="kpi-value" id="kpi-geral">—</div><div class="kpi-foot neutral" id="kpi-geral-foot"></div></div>
+    <div class="kpi-card"><div class="kpi-header"><span>Diferencial (alimentação − geral)</span></div>
+      <div class="kpi-value" id="kpi-diff">—</div><div class="kpi-foot warning" id="kpi-diff-foot"></div></div>
+    <div class="kpi-card"><div class="kpi-header"><span>Rendimento médio real habitual</span></div>
+      <div class="kpi-value" id="kpi-renda">—</div><div class="kpi-foot positive" id="kpi-renda-foot"></div></div>
+  </div>
+
+  <div class="insight" id="insight" aria-live="polite"></div>
+
+  <div class="charts-grid">
+    <div class="chart-card wide">
+      <div class="chart-header"><h3>Variação mensal: alimentação × IPCA geral (%)</h3>
+        <p>Cada ponto é a variação de preços do mês. Valores negativos indicam queda de preços (deflação).</p></div>
+      <div class="chart-container"><canvas id="chartComparativo" role="img" aria-label="Gráfico de linhas da variação mensal do IPCA de alimentação e do IPCA geral"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header"><h3>Acumulado em 12 meses (%)</h3>
+        <p>Mostra a tendência sem o “ruído” mensal. Cobre todos os meses de 2024 a 2026, pois usa 2023 como base.</p></div>
+      <div class="chart-container"><canvas id="chart12m" role="img" aria-label="Acumulado em 12 meses de alimentação e IPCA geral"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header"><h3>Diferencial mensal (p.p.)</h3>
+        <p>Laranja: alimentos subiram mais que o índice geral. Verde: subiram menos.</p></div>
+      <div class="chart-container"><canvas id="chartDif" role="img" aria-label="Barras do diferencial mensal entre alimentação e IPCA geral"></canvas></div>
+    </div>
+    <div class="chart-card wide">
+      <div class="chart-header"><h3>Poder de compra: renda real × preço dos alimentos</h3>
+        <p>Variação em 12 meses do rendimento real e do mesmo rendimento medido em alimentos. Só aparecem trimestres da PNAD verificados (veja a aba Dados).</p></div>
+      <div class="chart-container"><canvas id="chartRenda" role="img" aria-label="Barras da variação real da renda e da renda em poder de compra de alimentos"></canvas></div>
+      <p class="src">*Cálculo do autor: (1 + renda real a/a) × (1 + IPCA 12m) ÷ (1 + alimentação 12m) − 1. É uma aproximação, pois a renda é média de trimestre móvel.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ANÁLISE -->
+<section id="tab-analise" class="tab-content" role="tabpanel">
+  <div class="card">
+    <h2>O que os dados mostram</h2>
+    <p class="lead-text">Resposta à pergunta de pesquisa, em quatro achados.</p>
+    <div class="fact-grid">
+      <div class="fact"><strong>7,69% × 4,83%</strong><span>2024: alimentos subiram 2,86 p.p. acima do IPCA geral.</span></div>
+      <div class="fact"><strong>2,95% × 4,26%</strong><span>2025: o quadro se inverteu, com alimentos 1,31 p.p. abaixo do geral.</span></div>
+      <div class="fact"><strong>4,37% × 3,95%</strong><span>2026 (jan–set): alimentos voltam a ficar acima do geral.</span></div>
+      <div class="fact"><strong>4,66% × 4,58%</strong><span>Acumulado em 12 meses até set/2026: quase empatados, ambos acima do teto da meta (4,5%).</span></div>
+    </div>
+    <h3>1. A inflação de alimentos não foi uniformemente maior que a geral</h3>
+    <p>Alimentos pesaram mais em 2024, tiveram alívio em 2025 (quatro meses seguidos de queda, de jun a set) e voltaram a pressionar em 2026. Por isso a resposta depende do ano: o diferencial muda de sinal ao longo do período.</p>
+    <div class="chart-card" style="box-shadow:none;padding:0"><div class="chart-container"><canvas id="chartAnual" role="img" aria-label="Acumulado anual de alimentação e IPCA geral"></canvas></div></div>
+    <h3>2. Em 2026, a pressão vem de poucos grupos</h3>
+    <p>No acumulado de jan–set/26, tubérculos, raízes e legumes subiram 46,54%, e leite e derivados, 12,47%. Já óleos e gorduras (−5,65%) e aves e ovos (−4,99%) ficaram mais baratos. Em setembro, o tomate (+37,76%) e a batata-inglesa (+24,07%) interromperam três meses de queda do grupo (+0,83%).</p>
+    <div class="chart-card" style="box-shadow:none;padding:0"><div class="chart-container" style="height:360px"><canvas id="chartSub" role="img" aria-label="Variação acumulada em 2026 por subgrupo de alimentação"></canvas></div></div>
+    <h3>3. A renda real cresce, mas o ganho em poder de compra de alimentos varia</h3>
+    <p>O rendimento médio real chegou a R$ 3.790 no trimestre jul–set/26 (+3,6% em 12 meses). Medido em alimentos, o ganho de renda foi de apenas ~0,7% no trimestre encerrado em dez/24 (alimentos em alta) e de ~6,3% em dez/25 (alimentos em queda). Cálculo do autor, aproximado.</p>
+    <h3>4. O que este painel não mede</h3>
+    <ul>
+      <li>As causas da inflação (clima, câmbio, safra). Os números descrevem o que ocorreu, não o porquê.</li>
+      <li>O gasto de cada família: o IPCA é uma média para famílias de 1 a 40 salários mínimos, e famílias de menor renda gastam fatia maior com comida.</li>
+      <li>Os meses de out a dez/2026, ainda não divulgados pelo IBGE.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- METODOLOGIA -->
+<section id="tab-metodologia" class="tab-content" role="tabpanel">
+  <div class="card">
+    <h2>Ficha metodológica</h2>
+    <p class="lead-text">Parâmetros da pesquisa e forma de cálculo.</p>
+    <div class="method-grid">
+      <div class="method-item"><div class="method-num">1</div><div><h4>Tema</h4><p><strong>Inflação e poder de compra</strong></p></div></div>
+      <div class="method-item"><div class="method-num">2</div><div><h4>Território</h4><p><strong>Brasil (nacional)</strong>. O IPCA cobre 16 áreas urbanas: 10 regiões metropolitanas, Brasília e 5 municípios.</p></div></div>
+      <div class="method-item"><div class="method-num">3</div><div><h4>Período e frequência</h4><p><strong>Janeiro de 2024 a setembro de 2026</strong>, o último mês divulgado até 04/11/2026 (o IBGE ainda não publicou out–dez/2026). Frequência <strong>mensal</strong> para o IPCA; a renda da PNAD Contínua é de <strong>trimestre móvel</strong>, divulgado todo mês. Dados de 2023 servem só de base para o acumulado em 12 meses.</p></div></div>
+      <div class="method-item"><div class="method-num">4</div><div><h4>Pergunta investigável</h4><p class="highlight-q"><em>“Como a inflação de alimentos variou no período e como essa trajetória se compara à inflação geral?”</em></p></div></div>
+      <div class="method-item"><div class="method-num">5</div><div><h4>Indicador principal e complementares</h4>
+        <ul class="indicator-list">
+          <li><strong>Principal: IPCA, grupo Alimentação e bebidas.</strong> Nome oficial: Índice Nacional de Preços ao Consumidor Amplo (IBGE). Unidade: variação percentual (%). Frequência: mensal. O grupo pesa cerca de 21,5% no índice (set/2026).</li>
+          <li><strong>IPCA geral.</strong> Mesmo índice, considerando todos os grupos de produtos e serviços. Unidade: variação percentual (%). Frequência: mensal.</li>
+          <li><strong>Rendimento médio real habitual.</strong> Nome oficial: rendimento médio mensal real habitualmente recebido em todos os trabalhos (PNAD Contínua, IBGE). Unidade: reais (R$) e variação percentual em 12 meses. Frequência: trimestre móvel, divulgado mensalmente.</li>
+        </ul></div></div>
+    </div>
+    <h3>Fórmulas</h3>
+    <div class="formula">Acumulado = [(1 + i₁) × (1 + i₂) × … × (1 + iₙ) − 1] × 100</div>
+    <div class="formula">Diferencial (p.p.) = variação da alimentação − variação do IPCA geral</div>
+    <div class="formula">Renda em alimentos = (1 + renda a/a) × (1 + IPCA 12m) ÷ (1 + alimentação 12m) − 1</div>
+    <h3>Conceitos</h3>
+    <ul>
+      <li><strong>Ponto percentual (p.p.):</strong> diferença entre duas taxas. De 4% para 6% são 2 p.p. (e 50% de aumento relativo).</li>
+      <li><strong>Rendimento real:</strong> renda com a inflação descontada. Se cresce, o poder de compra médio aumentou.</li>
+      <li><strong>Trimestre móvel:</strong> média de três meses que avança um mês por divulgação, o que suaviza oscilações.</li>
+    </ul>
+    <div class="note"><strong>Limitações.</strong> (1) O IBGE reexpressa o rendimento real a preços recentes a cada divulgação, então os valores em R$ de edições diferentes não são comparáveis entre si; use a variação anual. (2) A série de renda tem lacunas: inclui só trimestres verificados em divulgações oficiais. (3) A inflação de alimentos e a renda usam bases distintas, e o cruzamento é aproximado.</div>
+  </div>
+</section>
+
+<!-- DADOS -->
+<section id="tab-dados" class="tab-content" role="tabpanel">
+  <div class="card">
+    <h2>Tabelas de dados</h2>
+    <p class="lead-text">Séries mensais do IPCA e rendimento real. Os acumulados em 12 meses são calculados a partir das variações mensais do IBGE.</p>
+    <div class="toolbar">
+      <label for="filtro-ano">Ano:</label>
+      <select id="filtro-ano"><option value="todos">Todos</option><option>2024</option><option>2025</option><option>2026</option></select>
+      <button class="btn" onclick="baixarCSV()">Baixar CSV</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="data-table" id="tabela-dados">
+        <thead><tr><th>Mês</th><th class="num">IPCA geral</th><th class="num">Alimentação</th><th class="num">Dif. (p.p.)</th><th class="num">Geral 12m</th><th class="num">Alim. 12m</th><th class="num">Renda real (a/a)</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="src">Renda: trimestre móvel encerrado no mês indicado; “—” = sem valor verificado. Valores em R$ conforme divulgados em cada edição da PNAD.</p>
+    <h3>Resumo anual</h3>
+    <div class="table-wrapper">
+      <table class="data-table" id="tabela-anual">
+        <thead><tr><th>Ano</th><th class="num">IPCA geral</th><th class="num">Alimentação</th><th class="num">Dif. (p.p.)</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- FONTES -->
+<section id="tab-fontes" class="tab-content" role="tabpanel">
+  <div class="card">
+    <h2>Fontes oficiais</h2>
+    <p class="lead-text">Todos os dados vêm de estatísticas públicas do IBGE. Dados conferidos em 04/11/2026.</p>
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead><tr><th>Base</th><th>Uso no site</th><th>Acesso</th></tr></thead>
+        <tbody>
+          <tr><td><strong>SIDRA, Tabela 7060 (IPCA)</strong><br>IBGE</td><td>Variação mensal do índice geral e do grupo Alimentação e bebidas.</td><td><a class="link-externo" href="https://sidra.ibge.gov.br/tabela/7060" target="_blank" rel="noopener noreferrer">Abrir tabela ↗</a></td></tr>
+          <tr><td><strong>Indicadores IBGE: IPCA e INPC, set/2026</strong><br>IBGE, publicado em 09/10/2026</td><td>Séries históricas mensais e acumulados por grupo e subgrupo.</td><td><a class="link-externo" href="https://biblioteca.ibge.gov.br/visualizacao/periodicos/236/inpc_ipca_2026_set.pdf" target="_blank" rel="noopener noreferrer">Abrir boletim ↗</a></td></tr>
+          <tr><td><strong>PNAD Contínua mensal</strong><br>IBGE, trimestre jun–ago/2026</td><td>Rendimento médio real habitual e metodologia do deflator.</td><td><a class="link-externo" href="https://biblioteca.ibge.gov.br/visualizacao/periodicos/3086/pnacm_2026_ago.pdf" target="_blank" rel="noopener noreferrer">Abrir boletim ↗</a></td></tr>
+          <tr><td><strong>PNAD Contínua: rendimento (SIDRA)</strong><br>IBGE</td><td>Série completa de renda, para conferência ou ampliação dos dados. Confirme o número da tabela no SIDRA (rendimento médio real, trimestre móvel).</td><td><a class="link-externo" href="https://sidra.ibge.gov.br/" target="_blank" rel="noopener noreferrer">Abrir SIDRA ↗</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- AUTOR -->
+<section id="tab-autor" class="tab-content" role="tabpanel">
+  <div class="card">
+    <h2>Autoria</h2>
+    <p class="lead-text">Projeto de análise econômica desenvolvido individualmente para a disciplina.</p>
+    <div class="team-grid"><div class="team-card single-author">
+      <div class="avatar" aria-hidden="true">LBS</div>
+      <h3>Leopoldo Bruschi Silva</h3>
+      <p class="role">Pesquisador e desenvolvedor</p>
+      <p class="bio">Coleta e conferência dos dados do IBGE, definição metodológica, cálculos e construção do painel.</p>
+    </div></div>
+  </div>
+</section>
+</main>
+
+<footer class="footer"><div class="container footer-content">
+  <p>Observatório Macro © 2026 · Projeto de análise econômica · Autor: Leopoldo Bruschi Silva</p>
+  <p>Fonte dos dados: IBGE. Atualizado com dados até set/2026.</p>
+</div></footer>
+<script src="script.js"></script>
+</body>
+</html>
